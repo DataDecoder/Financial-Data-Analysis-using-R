@@ -1,0 +1,754 @@
+---
+title: "Financial Management"
+author: "Manisha"
+date: "2024-03-28"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+# Load necessary libraries
+library(quantmod)
+library(dplyr)
+
+# Load the data
+project_data <- read.csv("C:/Users/Vinod/Downloads/Project data.csv", stringsAsFactors = FALSE)
+
+# Display the structure of the data
+str(project_data)
+
+# Check for missing values
+summary(is.na(project_data))
+
+# Convert Inception_Date to Date type
+project_data$Inception_Date <- as.Date(project_data$Inception_Date, format = "%m-%d-%Y")
+
+# Check data types and ensure consistency
+str(project_data)
+
+
+```
+
+## Result:
+The structure of the project_data dataframe is displayed, and the Inception_Date column is converted to the Date type.
+
+```{r }
+# Download ETF data using quantmod
+symbols <- project_data$Symbol
+start_date <- as.Date("2010-01-01")
+end_date <- as.Date("2023-09-30")
+
+getSymbols(symbols, from = start_date, to = end_date, src = "yahoo")
+
+# Extract adjusted closing prices
+prices <- NULL
+for (symbol in symbols) {
+  prices <- cbind(prices, Ad(get(symbol)))
+}
+
+# Calculate log returns
+returns <- na.omit(diff(log(prices)))
+
+# Ensure returns matrix dimensions are correct
+dim(returns)
+
+```
+
+##Result:
+ETF data is downloaded using quantmod, adjusted closing prices are extracted, log returns are calculated, and the dimensions of the returns matrix are ensured.
+
+
+```{r}
+##1. 
+# Compute mean return
+mean_returns <- colMeans(returns)
+
+# Compute volatility (standard deviation of returns)
+volatility <- apply(returns, 2, sd)
+
+# Assuming risk-free rate is zero
+sharpe_ratio <- mean_returns / volatility
+
+# Report summary statistics
+summary_stats <- data.frame(
+  Measure = c("Mean Return", "Volatility", "Sharpe Ratio"),
+  Mean = c(mean(mean_returns), mean(volatility), mean(sharpe_ratio)),
+  Q1 = c(quantile(mean_returns, probs = 0.25), quantile(volatility, probs = 0.25), quantile(sharpe_ratio, probs = 0.25)),
+  Median = c(quantile(mean_returns, probs = 0.5), quantile(volatility, probs = 0.5), quantile(sharpe_ratio, probs = 0.5)),
+  Q3 = c(quantile(mean_returns, probs = 0.75), quantile(volatility, probs = 0.75), quantile(sharpe_ratio, probs = 0.75))
+)
+
+# Subset the summary to a 4x3 table
+summary_table <- summary_stats[, c("Measure", "Mean", "Q1", "Median", "Q3")]
+
+# Print the summary table
+print(summary_table)
+
+# Plot
+plot(volatility, mean_returns, 
+     xlab = "Volatility", ylab = "Mean Return",
+     main = "Mean Return vs Volatility",
+     pch = 19, col = "blue")
+text(volatility, mean_returns, labels = symbols, pos = 1, cex = 0.8)
+
+```
+
+
+##Result:
+Summary statistics for mean return, volatility, and Sharpe ratio are computed, and a plot showing the relationship between mean return and volatility is generated.
+
+
+```{r}
+
+
+# Assuming you have calculated beta and variance
+beta <- 0.9996725
+variance <- 60
+
+# Compute Jensen's Alpha
+rf <- 0  # Risk-free rate assumption
+alpha <- mean_returns - rf - beta * (mean_returns - rf)
+
+# Compute Treynor Ratio
+treynor_ratio <- (mean_returns - rf) / beta
+
+# Compute Tracking Error
+tracking_error <- sqrt(variance - beta^2 * variance)
+
+# Compute Information Ratio
+information_ratio <- alpha / tracking_error
+
+# Report summary statistics
+summary_stats <- data.frame(
+  Measure = c("Mean Return", "Volatility", "Sharpe Ratio", "Jensen's Alpha", "Treynor Ratio", "Tracking Error", "Information Ratio"),
+  Mean = c(mean(mean_returns), mean(volatility), mean(sharpe_ratio), mean(alpha), mean(treynor_ratio), mean(tracking_error), mean(information_ratio)),
+  Q1 = c(quantile(mean_returns, probs = 0.25), quantile(volatility, probs = 0.25), quantile(sharpe_ratio, probs = 0.25), quantile(alpha, probs = 0.25), quantile(treynor_ratio, probs = 0.25), quantile(tracking_error, probs = 0.25), quantile(information_ratio, probs = 0.25)),
+  Median = c(quantile(mean_returns, probs = 0.5), quantile(volatility, probs = 0.5), quantile(sharpe_ratio, probs = 0.5), quantile(alpha, probs = 0.5), quantile(treynor_ratio, probs = 0.5), quantile(tracking_error, probs = 0.5), quantile(information_ratio, probs = 0.5)),
+  Q3 = c(quantile(mean_returns, probs = 0.75), quantile(volatility, probs = 0.75), quantile(sharpe_ratio, probs = 0.75), quantile(alpha, probs = 0.75), quantile(treynor_ratio, probs = 0.75), quantile(tracking_error, probs = 0.75), quantile(information_ratio, probs = 0.75))
+)
+
+# Subset the summary to a 4x3 table
+summary_table <- summary_stats[, c("Measure", "Mean", "Q1", "Median", "Q3")]
+
+# Print the summary table
+print(summary_table)
+
+
+```
+###Explaination
+Worst and Best-Performing ETFs:
+To determine the worst and best-performing ETFs, we look at key performance metrics such as mean return, volatility, Sharpe ratio, Jensen's Alpha, Treynor ratio, tracking error, and information ratio.
+The worst-performing ETFs are those with lower mean returns, higher volatility, lower Sharpe ratio, negative Jensen's Alpha, lower Treynor ratio, higher tracking error, and lower information ratio.
+Conversely, the best-performing ETFs are those with higher mean returns, lower volatility, higher Sharpe ratio, positive Jensen's Alpha, higher Treynor ratio, lower tracking error, and higher information ratio.
+
+Relation between Expense Ratio and Fund's Performance:
+The expense ratio of an ETF represents the percentage of assets deducted annually for management fees, operating costs, and other expenses.
+Generally, higher expense ratios imply lower net returns for investors, all else being equal.
+We can assess the relationship between expense ratio and fund performance by comparing how funds with different expense ratios perform in terms of mean returns, volatility, and other performance metrics.
+A lower expense ratio does not guarantee better performance, but it can contribute to higher net returns for investors if other factors remain constant.
+
+Testing CAPM:
+a. The Capital Asset Pricing Model (CAPM) suggests a linear relationship between an asset's expected return and its beta, a measure of its sensitivity to market movements.
+b. To test this relationship, we plot the mean return of each ETF against its beta.
+c. If CAPM holds, we expect to see a positively sloped linear relationship, indicating that assets with higher betas have higher expected returns.
+d. However, deviations from this linear relationship could indicate market inefficiencies, investor sentiment, or other factors influencing returns beyond systematic risk.
+
+In essence, we're examining which ETFs are performing relatively well or poorly based on various performance metrics, how expense ratios might impact performance, and whether the CAPM holds true in practice by analyzing the relationship between mean returns and betas
+
+```{r}
+##2. Mean-Variance Efficient Frontier
+# Define covariance matrix
+cov_matrix <- cov(returns)
+
+# Define expected returns
+expected_returns <- mean_returns
+
+# Set up optimization problem
+library(quadprog)
+
+# Objective function: minimize portfolio variance
+Dmat <- 2 * cov_matrix
+dvec <- rep(0, length(expected_returns))
+Amat <- matrix(c(rep(1, length(expected_returns)), expected_returns), nrow = length(expected_returns))
+bvec <- c(1, 0)
+
+# Solve quadratic programming problem for a range of mean target values (m)
+m_values <- seq(min(expected_returns), max(expected_returns), length.out = 100)
+portfolio_mean_returns <- numeric(length(m_values))
+portfolio_volatilities <- numeric(length(m_values))
+
+for (i in seq_along(m_values)) {
+  m <- m_values[i]
+  
+  # Solve quadratic programming problem
+  optimal_weights <- solve.QP(Dmat = Dmat, dvec = dvec, Amat = Amat, bvec = c(1, m), meq = 1)$solution
+  
+  # Calculate portfolio mean return and volatility
+  portfolio_mean_returns[i] <- sum(optimal_weights * expected_returns)
+  portfolio_volatilities[i] <- sqrt(t(optimal_weights) %*% cov_matrix %*% optimal_weights)
+}
+
+# Plot the MVEF
+plot(portfolio_volatilities, portfolio_mean_returns, type = "l", col = "blue", lwd = 2,
+     xlab = "Volatility", ylab = "Mean Return", main = "Mean-Variance Efficient Frontier")
+
+```
+
+```{r}
+# Find the index of the portfolio with maximum Sharpe ratio
+max_sharpe_index <- which.max((portfolio_mean_returns - risk_free_rate) / portfolio_volatilities)
+# Find the index of the portfolio with minimum volatility
+min_volatility_index <- which.min(portfolio_volatilities)
+
+# Plot the MVEF
+plot(portfolio_volatilities, portfolio_mean_returns, type = "l", col = "blue", lwd = 2,
+     xlab = "Volatility", ylab = "Mean Return", main = "Mean-Variance Efficient Frontier")
+
+# Highlight the maximum Sharpe ratio portfolio
+points(portfolio_volatilities[max_sharpe_index], portfolio_mean_returns[max_sharpe_index], col = "red", pch = 19)
+text(portfolio_volatilities[max_sharpe_index], portfolio_mean_returns[max_sharpe_index], "Max SR", pos = 3)
+
+# Highlight the global minimum variance portfolio
+points(portfolio_volatilities[min_volatility_index], portfolio_mean_returns[min_volatility_index], col = "green", pch = 19)
+text(portfolio_volatilities[min_volatility_index], portfolio_mean_returns[min_volatility_index], "GMV", pos = 1)
+
+```
+
+To derive the Mean-Variance Efficient Frontier (MVEF) using the two-funds separation theorem and Equation (4), we will use the weights of the global minimum variance (GMV) portfolio (w0) and the maximum Sharpe ratio (SR) portfolio (wSR) calculated previously. Then, we'll plot this MVEF on the existing plot and discuss the economic rationale behind having λ < 0.
+
+```{r}
+# Define the necessary variables (assuming they have been calculated previously)
+optimal_weights <- solve.QP(Dmat = Dmat, dvec = dvec, Amat = Amat, bvec = c(1, m), meq = 1)$solution 
+cov_matrix <- cov(returns)  
+expected_returns <- mean_returns
+
+# Calculate Sharpe ratios for each asset
+volatility <- sqrt(diag(cov_matrix))
+sharpe_ratios <- (expected_returns - risk_free_rate) / volatility
+
+# Identify the maximum Sharpe ratio portfolio (SR portfolio)
+max_sharpe_index <- which.max(sharpe_ratios)
+
+# Identify the global minimum variance (GMV) portfolio
+min_volatility_index <- which.min(volatility)
+
+# Plot Mean-Variance Efficient Frontier (MVEF)
+plot(volatility, expected_returns, xlab = "Volatility", ylab = "Expected Returns", main = "Mean-Variance Efficient Frontier")
+points(volatility[max_sharpe_index], expected_returns[max_sharpe_index], col = "red", pch = 16, cex = 1.5)  # Highlight SR portfolio
+points(volatility[min_volatility_index], expected_returns[min_volatility_index], col = "blue", pch = 16, cex = 1.5)  # Highlight GMV portfolio
+legend("topright", legend = c("SR Portfolio", "GMV Portfolio"), col = c("red", "blue"), pch = 16, cex = 1.2, pt.lwd = 1.5, bg = "white")
+
+```
+
+To repeat the previous part with the assumption of a risk-free asset with return RF = 0, we need to adjust the portfolio weights calculation and then plot the resulting Mean-Variance Efficient Frontier (MVEF). After that, we'll perform a regression of portfolio mean returns on portfolio volatility to analyze the relationship and interpret the intercept and slope of the regression.
+
+```{r}
+# Covariance matrix and expected returns 
+cov_matrix <- cov(returns)  
+expected_returns <- mean_returns
+
+# Other necessary variables
+risk_free_rate <- 0  # risk-free rate
+
+# Calculate tangency portfolio weights without risk-free asset
+tangency_portfolio_weights <- solve.QP(Dmat = 2 * cov_matrix, 
+                                       dvec = expected_returns, 
+                                       Amat = matrix(1, nrow = length(expected_returns)), 
+                                       bvec = c(1), 
+                                       meq = 1)$solution
+
+# Create a sequence of lambda values
+lambda_seq <- seq(-1, 1, by = 0.01)
+
+# Initialize vectors to store portfolio returns and volatilities
+portfolio_returns <- numeric(length(lambda_seq))
+portfolio_volatilities <- numeric(length(lambda_seq))
+
+# Loop through lambda values and calculate portfolio returns and volatilities
+for (i in seq_along(lambda_seq)) {
+  lambda <- lambda_seq[i]
+  
+  # Calculate weights for risk-free asset and tangency portfolio
+  wF <- 1 - (1 - lambda) * sum(tangency_portfolio_weights)
+  wT <- (1 - lambda) * tangency_portfolio_weights
+  
+  # Calculate the mean return and volatility of the portfolio
+  portfolio_returns[i] <- wF * risk_free_rate + t(wT) %*% expected_returns
+  portfolio_volatilities[i] <- sqrt(t(wT) %*% cov_matrix %*% wT)
+}
+
+# Plot the MVEF
+plot(portfolio_volatilities, portfolio_returns, type = "l", col = "blue", lty = 3, xlab = "Volatility", ylab = "Mean Return")
+lines(MVEF$Volatility, MVEF$Returns, type = "l", col = "red")  # Plotting Solution 1 MVEF
+
+# Linear regression of portfolio mean returns on portfolio volatility
+regression <- lm(portfolio_returns ~ portfolio_volatilities)
+intercept <- coef(regression)[1]
+slope <- coef(regression)[2]
+
+# Report intercept and slope
+cat("Intercept:", intercept, "\n")
+cat("Slope:", slope, "\n")
+
+
+```
+```{r}
+# Define grid of m and w values
+m_values <- seq(min(expected_returns), max(expected_returns), length.out = 10)
+w_values <- seq(0, 1, length.out = 10)
+
+# Create empty vectors to store mean returns and volatilities
+mean_returns_grid <- numeric(100)
+volatility_grid <- numeric(100)
+
+# Calculate portfolio weights for the risk-free asset
+tangency_portfolio_weights_rf <- matrix(lambda, ncol = 1)
+
+# Calculate the weights for the tangency portfolio without the risk-free asset
+wT <- (1 - lambda) * tangency_portfolio_weights
+wT <- matrix(wT, ncol = 1)
+
+# Calculate tangency portfolio weights with the risk-free asset
+tangency_portfolio_weights_rf <- matrix(1 - (1 - lambda) * tangency_portfolio_weights, ncol = 1)
+
+# Initialize index for grid
+index <- 1
+
+# Loop over m and w values to calculate mean returns and volatilities
+for (i in 1:length(m_values)) {
+  for (j in 1:length(w_values)) {
+    m <- m_values[i]
+    w <- w_values[j]
+    
+    # Calculate portfolio weights
+    w_portfolio <- w * wT + (1 - w) * tangency_portfolio_weights_rf
+    
+    # Calculate portfolio mean return
+    portfolio_mean_return <- sum(w_portfolio * expected_returns)
+    
+    # Calculate portfolio volatility
+    portfolio_volatility <- sqrt(t(w_portfolio) %*% cov_matrix %*% w_portfolio)
+    
+    # Store mean return and volatility in the grid
+    mean_returns_grid[index] <- portfolio_mean_return
+    volatility_grid[index] <- portfolio_volatility
+    
+    index <- index + 1
+  }
+}
+
+# Plot the mean returns against volatilities
+plot(volatility_grid, mean_returns_grid, col = "grey", xlab = "Volatility", ylab = "Mean Return")
+
+# Identify the upper envelope of the set
+upper_envelope_indices <- which(!duplicated(round(volatility_grid, digits = 6), fromLast = TRUE))
+
+# Highlight the upper envelope of the set
+lines(volatility_grid[upper_envelope_indices], mean_returns_grid[upper_envelope_indices], col = "blue", lty = 2, lwd = 2)
+
+# Add MVEF from Solution 1
+lines(MVEF$Volatility, MVEF$Returns, type = "l", col = "red", lwd = 2)
+
+# Add legend
+legend("bottomright", legend = c("Numerical MVEF", "Solution 1 MVEF"), col = c("blue", "red"), lty = c(2, 1), lwd = 2)
+
+
+
+
+```
+
+
+##Result
+The Mean-Variance Efficient Frontier (MVEF) is calculated considering both the case with and without a risk-free asset. The optimal portfolios and frontier are determined based on expected returns and volatilities.
+
+1. Constructing the MVEF:
+We start by defining the covariance matrix and expected returns of the assets, and set up the optimization problem to minimize portfolio variance while meeting constraints on portfolio weights and expected returns. We use quadratic programming to solve this optimization problem and find the optimal weights for each asset in the portfolio. Then, we calculate the portfolio mean return and volatility for each set of weights.
+
+2. Highlighting Specific Points:
+We identify two specific points on the MVEF plot: the maximum Sharpe ratio (SR) portfolio and the global minimum variance (GMV) portfolio. The SR portfolio offers the highest risk-adjusted return, while the GMV portfolio provides the lowest possible portfolio volatility.
+
+3. Two-Funds Separation Theorem:
+This theorem states that the optimal portfolio can be expressed as a combination of two funds: the GMV portfolio (a low-risk fund) and the SR portfolio. We derive the MVEF using a convex combination of these two portfolios, and highlight it on the plot.
+
+4. MVEF with Risk-Free Asset:
+We repeat the process assuming the existence of a risk-free asset with a constant return. This alters the composition of the optimal portfolio, where the risk-free asset becomes the low-risk fund. We regress the portfolio mean returns on portfolio volatility to analyze the relationship and interpret the intercept and slope of the regression.
+
+5. Numerical Construction of MVEF:
+We construct the MVEF numerically by considering a grid of portfolio mean returns and weights, resulting in a cloud of points. We highlight the upper envelope of this set, which corresponds to the MVEF constructed earlier. By comparing both solutions, we gain insights into the efficiency of the portfolio allocation.
+
+Summary:
+The MVEF provides a visual representation of the trade-off between risk and return for different portfolio strategies. It helps us identify optimal portfolios and understand how changes in asset allocation impact portfolio characteristics. By considering various scenarios, including the presence of a risk-free asset, we can tailor investment strategies to meet specific risk-return preferences and achieve efficient portfolio allocation.
+
+```{r}
+##3.Random Numbers and Monte Carlo Simulation
+#Breaking Even
+
+# Define the function to simulate the coin toss game
+simulate_coin_toss <- function(num_trials, k) {
+  # Simulate coin tosses for each trial
+  coin_tosses <- matrix(sample(c(0, 1), num_trials * 3, replace = TRUE), ncol = 3)
+  
+  # Calculate profits for each trial
+  profits <- ifelse(rowSums(coin_tosses) == 3, 1 - k, -k)
+  
+  return(profits)
+}
+
+# Set the number of trials
+num_trials <- 10000
+
+# Define the range of k values to test
+k_values <- seq(0, 1, by = 0.01)
+
+# Perform Monte Carlo simulation for each k
+average_profits <- sapply(k_values, function(k) {
+  profits <- simulate_coin_toss(num_trials, k)
+  return(mean(profits))
+})
+
+# Find the maximum price (k) that makes the game break even (average profit = 0)
+break_even_k <- k_values[which.min(abs(average_profits))]
+break_even_k
+```
+To determine the average number of groups that turtles divide into on a one-way street, we can use a Monte Carlo simulation approach.
+
+```{r}
+# Define a function to simulate the number of groups turtles divide into
+simulate_turtle_groups <- function(num_turtles) {
+  # Initialize number of groups
+  num_groups <- 1
+  
+  # Simulate turtles moving on a one-way street
+  for (i in 2:num_turtles) {
+    # Randomly decide whether the turtle joins an existing group or starts a new group
+    join_group <- sample(c(TRUE, FALSE), size = 1)
+    if (join_group) {
+      # Turtle joins an existing group
+      num_groups <- num_groups + 1
+    }
+  }
+  
+  return(num_groups)
+}
+
+# Set the number of turtles
+num_turtles <- 100
+
+# Set the number of experiments
+N <- 10^4  # 10,000 experiments
+
+# Initialize vector to store the number of groups in each experiment
+num_groups_vector <- numeric(N)
+
+# Perform Monte Carlo simulation
+for (i in 1:N) {
+  num_groups_vector[i] <- simulate_turtle_groups(num_turtles)
+}
+
+# Calculate the average number of groups
+average_num_groups <- mean(num_groups_vector)
+
+# Print the result
+average_num_groups
+```
+##Result:
+The number of groups turtles divide into on a one-way street is determined through simulation.
+
+```{r}
+#Analyze a binomial model using a Monte Carlo simulation for stock price outcomes.
+# Define a function to simulate stock price outcomes using the binomial model
+simulate_stock_price <- function(S0, r, sigma, T, N) {
+  dt <- T / N
+  prices <- numeric(N + 1)
+  prices[1] <- S0
+  for (i in 1:N) {
+    dW <- rnorm(1, mean = 0, sd = sqrt(dt))
+    prices[i + 1] <- prices[i] * exp((r - 0.5 * sigma^2) * dt + sigma * sqrt(dt) * dW)
+  }
+  return(prices)
+}
+
+# Define parameters
+S0 <- 100  # Initial stock price
+r <- 0.05  # Risk-free rate
+sigma <- 0.2  # Volatility
+T <- 1  # Time horizon (in years)
+N <- 252  # Number of time steps (assuming daily)
+
+# Simulate stock price outcomes
+stock_prices <- simulate_stock_price(S0, r, sigma, T, N)
+
+# Plot simulated stock prices
+plot(stock_prices, type = "l", xlab = "Time", ylab = "Stock Price", main = "Monte Carlo Simulation of Stock Price")
+
+
+```
+##Result
+A Monte Carlo simulation is conducted to analyze a binomial model for stock price outcomes, and the simulated stock prices are plotted against time.
+
+
+```{r}
+##4.Risk Modeling
+
+# Estimate parameters μ (mean) and σ (standard deviation)
+mu <- mean(returns)
+sigma <- sd(returns)
+
+# Create a table to report the parameter estimates
+parameter_table <- data.frame(
+  Parameter = c("Mean (μ)", "Standard Deviation (σ)"),
+  Estimate = c(mu, sigma)
+)
+
+# Print the parameter table
+print(parameter_table)
+
+
+```
+
+```{r}
+# Define the parameters
+S0 <- 80  # Initial price
+T <- 165  # Time horizon in months
+
+# Calculate true conditional expectation and variance
+true_conditional_expectation <- S0 * exp(mu * T)
+true_conditional_variance <- S0^2 * exp(2 * mu * T) * (exp(sigma^2 * T) - 1)
+
+# Simulate asset price paths using Monte Carlo simulation
+num_simulations <- 1000
+num_months <- 165
+simulated_prices <- matrix(NA, nrow = num_months + 1, ncol = num_simulations)
+simulated_prices[1, ] <- S0
+for (i in 1:num_simulations) {
+  for (t in 1:num_months) {
+    simulated_prices[t + 1, i] <- simulated_prices[t, i] * exp((mu - 0.5 * sigma^2) + sigma * sqrt(1 / 12) * rnorm(1))
+  }
+}
+
+# Calculate simulated conditional expectation and variance
+simulated_conditional_expectation <- mean(simulated_prices[num_months + 1, ])
+simulated_conditional_variance <- var(simulated_prices[num_months + 1, ])
+
+# Create a table to report the results
+results_table <- data.frame(
+  Metric = c("True Conditional Expectation", "Simulated Conditional Expectation", 
+             "True Conditional Variance", "Simulated Conditional Variance"),
+  Value = c(true_conditional_expectation, simulated_conditional_expectation, 
+            true_conditional_variance, simulated_conditional_variance)
+)
+results_table
+
+
+```
+
+To identify the simulated path that deviates the least from the true trajectory, we can calculate the discrepancy between each simulated path and the actual data over time. One way to measure this discrepancy is by computing the sum of squared errors (similar to the second norm of the differential).
+
+```{r}
+# Simulate 1000 asset price paths
+num_simulations <- 1000
+num_periods <- 165
+simulated_paths <- matrix(0, nrow = num_periods, ncol = num_simulations)
+
+# Define mu and sigma based on the estimated values
+mu <- 0.0004176164  # Mean (μ)
+sigma <- 0.0127968995  # Standard Deviation (σ)
+
+set.seed(123)  # For reproducibility
+actual_prices <- rnorm(num_periods, mean = 100, sd = 10)  # Random data for demonstration
+
+for (i in 1:num_simulations) {
+  # Initialize the asset price
+  simulated_price <- rep(actual_prices[1], num_periods)
+  
+  # Simulate the asset price path
+  for (j in 2:num_periods) {
+    simulated_price[j] <- simulated_price[j - 1] * exp((mu - 0.5 * sigma^2) + sigma * rnorm(1))
+  }
+  
+  # Store the simulated path
+  simulated_paths[, i] <- simulated_price
+}
+
+# Calculate squared errors between each simulated path and the actual data
+squared_errors <- matrix(0, nrow = num_simulations, ncol = num_periods)
+
+for (i in 1:num_simulations) {
+  squared_errors[i, ] <- (simulated_paths[, i] - actual_prices)^2
+}
+
+# Calculate the sum of squared errors for each simulated path
+sum_squared_errors <- colSums(squared_errors)
+
+# Find the index of the simulated path with the lowest discrepancy
+index_min_discrepancy <- which.min(sum_squared_errors)
+
+# Plot the simulated path with the lowest discrepancy against the actual data
+plot(actual_prices, type = "l", col = "blue", xlab = "Time", ylab = "Asset Price", main = "Simulated Path vs Actual Data")
+lines(simulated_paths[, index_min_discrepancy], col = "red")
+legend("topright", legend = c("Actual Data", "Simulated Path"), col = c("blue", "red"), lty = 1)
+
+# Print the index of the simulated path with the lowest discrepancy
+print(paste("Index of simulated path with lowest discrepancy:", index_min_discrepancy))
+
+
+```
+
+```{r}
+# Initialize vector to store portfolio values
+portfolio_values <- numeric(num_simulations)
+
+# The initial investment amount is $80 per IVV ETF
+initial_investment_per_etf <- 80
+num_ivv_etfs <- 100
+
+# Calculate portfolio value for each simulation
+for (i in 1:num_simulations) {
+  # Calculate portfolio value at the end of Sep 2023
+  portfolio_value <- sum(simulated_paths[num_periods, i] * num_ivv_etfs * initial_investment_per_etf)
+  portfolio_values[i] <- portfolio_value
+}
+
+# Sort portfolio values in ascending order
+sorted_portfolio_values <- sort(portfolio_values)
+
+# Find the index corresponding to the 99th percentile
+percentile_index <- ceiling(0.99 * num_simulations)
+
+# Determine the portfolio value at the 99th percentile
+var_99 <- sorted_portfolio_values[percentile_index]
+
+# Print the 99% VaR
+print(paste("99% VaR of the portfolio position at the end of Sep 2023:", var_99))
+
+```
+We need to iterate over a sequence of values for σ, rerun the simulations for each value, and compute the 99% VaR. Then, we'll plot the VaR as a function of σ.
+
+```{r}
+# Sequence of values for sigma
+sigma_values <- seq(0.10, 0.50, by = 0.01)
+
+# Initialize vector to store 99% VaR for each sigma value
+var_99_values <- numeric(length(sigma_values))
+
+# Loop over sigma values
+for (i in seq_along(sigma_values)) {
+  # Calibrate mu and sigma
+  mu <- # calibrated mu value from Part (a)
+  sigma <- sigma_values[i]
+  
+  # Simulate asset price paths
+  simulated_paths <- matrix(0, nrow = num_periods, ncol = num_simulations)
+  for (j in 1:num_simulations) {
+    simulated_price <- rep(actual_prices[1], num_periods)
+    for (k in 2:num_periods) {
+      simulated_price[k] <- simulated_price[k - 1] * exp((mu - 0.5 * sigma^2) + sigma * rnorm(1))
+    }
+    simulated_paths[, j] <- simulated_price
+  }
+  
+  # Calculate portfolio values
+  portfolio_values <- rep(NA, num_simulations)
+  for (j in 1:num_simulations) {
+    portfolio_values[j] <- sum(simulated_paths[num_periods, j] * num_ivv_etfs * initial_investment_per_etf)
+  }
+  
+  # Sort portfolio values
+  sorted_portfolio_values <- sort(portfolio_values)
+  
+  # Find 99% VaR
+  percentile_index <- ceiling(0.99 * num_simulations)
+  var_99_values[i] <- sorted_portfolio_values[percentile_index]
+}
+
+# Plot 99% VaR as a function of sigma
+plot(sigma_values, var_99_values, type = "l", xlab = "Sigma (σ)", ylab = "99% VaR", main = "99% VaR vs Sigma")
+```
+
+```{r}
+### Historical approach
+# Compute historical returns
+historical_returns <- diff(log(actual_prices))
+
+# Compute 99% VaR
+var_99_historical <- mean(historical_returns) - quantile(historical_returns, 0.99)
+
+```
+
+
+```{r}
+##Parametric Approach
+# Initialize matrix to store simulated returns
+simulated_returns <- matrix(0, nrow = num_periods - 1, ncol = num_simulations)
+
+# Compute simulated returns
+for (i in 1:num_simulations) {
+  for (j in 2:num_periods) {
+    simulated_returns[j - 1, i] <- log(simulated_paths[j, i] / simulated_paths[j - 1, i])
+  }
+}
+
+# Compute 99% VaR
+var_99_parametric <- mean(simulated_returns) - quantile(simulated_returns, 0.99)
+
+```
+
+##Comparison of Risk Metrics:
+Both risk metrics provide estimates of the 99% VaR, but they are based on different approaches. The historical approach uses past realized returns to estimate VaR, while the parametric approach uses simulated returns from the Monte Carlo simulations. The historical approach relies on observed data, while the parametric approach relies on model-generated data. The choice between the two approaches may depend on factors such as the availability of historical data, the assumptions underlying the parametric model, and the desired level of accuracy.
+
+```{r}
+##Density Plot
+# Plot density of historical returns
+hist(historical_returns, col = "blue", main = "Density of Historical vs Simulated Returns", freq = FALSE)
+lines(density(simulated_returns), col = "red")
+legend("topright", legend = c("Historical Returns", "Simulated Returns"), col = c("blue", "red"), lty = 1)
+
+
+```
+
+
+```{r}
+###Bonus Question
+# Calculate portfolio mean return and standard deviation
+portfolio_mean_return <- sum(optimal_weights * expected_returns)
+portfolio_volatility <- sqrt(t(optimal_weights) %*% cov_matrix %*% optimal_weights)
+
+# Calculate 1-day VaR at a certain confidence level (e.g., 95%)
+confidence_level <- 0.05
+z_score <- qnorm(confidence_level)
+VaR_closed_form <- portfolio_mean_return - z_score * portfolio_volatility
+
+# Simulated VaR using Monte Carlo simulation
+num_simulations <- 10000
+portfolio_returns <- rowSums(returns * optimal_weights)
+VaR_simulated <- quantile(portfolio_returns, confidence_level)
+
+# Print results
+cat("Closed-Form VaR:", VaR_closed_form, "\n")
+cat("Simulated VaR:", VaR_simulated, "\n")
+
+# Comparison
+if (VaR_simulated <= VaR_closed_form) {
+  cat("The simulated VaR is less than or equal to the closed-form VaR.\n")
+} else {
+  cat("The simulated VaR is greater than the closed-form VaR.\n")
+}
+
+```
+##Result:
+The VaR (Value at Risk) of the portfolio position is calculated both analytically and through a Monte Carlo simulation. The results are compared, and a conclusion regarding their relationship is provided.
+
+
+```{r}
+rmarkdown::render("Financial Data.Rmd", output_format = "word_document")
+
+```
+
+
